@@ -84,8 +84,6 @@ If you'd rather wire it up yourself:
 
 ## Configure
 
-Set these in your shell profile. **Never commit the API key.**
-
 | Variable        | Required | Default                          | Purpose                                    |
 | --------------- | -------- | -------------------------------- | ------------------------------------------ |
 | `DRAFT_API_KEY` | yes      | —                                | Your workspace agent API key (`fdrk_…`).   |
@@ -93,11 +91,37 @@ Set these in your shell profile. **Never commit the API key.**
 
 Get an API key from your Draft workspace under **Settings → Agents**.
 
-The MCP server reads these from the environment, so by default the key
-never lands in `config.yaml`. If you run the work loop unattended via
-`hermes cron`, the gateway daemon's subprocess may not inherit an
-interactive shell's environment — in that case set the values in the
-server's `env:` block in `config.yaml` (see `config.yaml.example`).
+### The key must live in the config's `env:` block
+
+This trips people up coming from Claude Code or Codex, where exporting
+`DRAFT_API_KEY` (or prefixing the launch, `DRAFT_API_KEY=… claude`) is
+enough — those hosts hand the MCP subprocess your shell environment.
+**Hermes does not.** For a stdio MCP server it forwards only a safe
+baseline (`PATH`, `HOME`, `USER`, `LANG`, `LC_ALL`, `TERM`, `SHELL`,
+`TMPDIR`, `XDG_*`) plus the server entry's own `env:` map, and it does
+**not** interpolate `${VAR}` inside that map. So an exported
+`DRAFT_API_KEY` never reaches the Draft server — the key has to be the
+literal value in `env:`:
+
+```yaml
+mcp_servers:
+  draft:
+    command: "node"
+    args: ["/abs/path/to/mcp/draft-mcp.js"]
+    env:
+      DRAFT_API_KEY: "fdrk_…"            # required — literal value
+      # DRAFT_API_URL: "https://…"       # only for self-hosted Draft
+```
+
+`scripts/install.sh` writes this for you: it reads `DRAFT_API_KEY` (and
+`DRAFT_API_URL`, if set) from your shell **at install time** and bakes
+the value into the `env:` block. If the key isn't exported when you run
+it, the installer leaves a `fdrk_REPLACE_WITH_YOUR_KEY` placeholder for
+you to fill in. Because the key now lives in `~/.hermes/config.yaml`,
+**keep that file out of version control.**
+
+This applies everywhere the server runs — interactive sessions and
+unattended `hermes cron` jobs alike.
 
 ## Use
 

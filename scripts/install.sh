@@ -45,22 +45,37 @@ echo "    (/draft-queue, /draft-work, /draft-watch)"
 mkdir -p "$HERMES_HOME"
 touch "$CONFIG"
 
+# Credentials. Unlike Claude Code / Codex, Hermes does NOT hand a stdio
+# MCP subprocess your shell environment — it passes only a safe baseline
+# (PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL, TMPDIR, XDG_*) plus
+# whatever is in the entry's `env:` map, and it does NOT interpolate
+# ${VAR} inside that map. So `DRAFT_API_KEY=... hermes` never reaches the
+# server: the key must be written literally into `env:` below. We read it
+# from your shell at install time; if it isn't exported yet, we write a
+# clear placeholder for you to fill in.
+KEY="${DRAFT_API_KEY:-}"
+URL="${DRAFT_API_URL:-}"
+KEY_IS_PLACEHOLDER=0
+if [ -z "$KEY" ]; then
+  KEY="fdrk_REPLACE_WITH_YOUR_KEY"
+  KEY_IS_PLACEHOLDER=1
+fi
+
 # The draft entry, indented two spaces as a child of `mcp_servers:`.
-# We rely on ambient env for the credentials so the key never lands on
-# disk; uncomment the `env:` map if your Hermes gateway daemon (used by
-# `hermes cron`) can't see DRAFT_API_KEY from its environment.
-#
 # Emitted via a literal heredoc (not `read`, which would strip the
 # leading indentation off the first line and break the YAML nesting).
+# DRAFT_API_URL is only emitted when you've set a non-default host.
 print_draft_entry() {
   cat <<EOF
   draft:
     command: "node"
     args: ["$MCP_PATH"]
-    # env:
-    #   DRAFT_API_KEY: "fdrk_..."
-    #   DRAFT_API_URL: "https://draft.foundryworks.dev"
+    env:
+      DRAFT_API_KEY: "$KEY"
 EOF
+  if [ -n "$URL" ]; then
+    echo "      DRAFT_API_URL: \"$URL\""
+  fi
 }
 
 if grep -qE '^[[:space:]]+draft:[[:space:]]*$' "$CONFIG"; then
@@ -80,16 +95,29 @@ else
   echo "  ✓ added mcp_servers.draft → $CONFIG"
 fi
 
-cat <<'EOF'
+if [ "$KEY_IS_PLACEHOLDER" -eq 1 ]; then
+  cat <<EOF
 
-Done. Next steps:
-  • Export your workspace agent key in your shell profile:
-      export DRAFT_API_KEY=fdrk_...
-  • (Self-hosted Draft only) also export:
-      export DRAFT_API_URL=https://your-draft-host
-  • Restart Hermes, then try:  /draft-queue
+  ! DRAFT_API_KEY was not set in your shell, so the config now has a
+    placeholder. Edit $CONFIG and replace
+    fdrk_REPLACE_WITH_YOUR_KEY under mcp_servers.draft.env with your
+    real key. (Re-running this script with DRAFT_API_KEY exported will
+    NOT overwrite an existing draft entry — edit the file directly.)
+EOF
+else
+  echo
+  echo "  ✓ wrote your DRAFT_API_KEY into mcp_servers.draft.env"
+fi
+
+cat <<EOF
+
+Note: Hermes only forwards a safe baseline of env vars to stdio MCP
+servers, so the key must live in the config's env: block (above) — an
+exported DRAFT_API_KEY in your shell is NOT enough on its own. Keep
+$CONFIG out of version control since it now holds the key.
+
+Restart Hermes, then try:  /draft-queue
 
 For unattended watching, schedule the work loop with Hermes cron:
       hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill draft-work
-  (see the draft-watch skill / README for the env caveat under the gateway daemon).
 EOF

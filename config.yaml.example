@@ -14,17 +14,15 @@ mcp_servers:
     command: "node"
     args: ["/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js"]
 
-    # Credentials are read from the environment by default, so the key
-    # never has to be written into this file. Prefer exporting them in
-    # your shell profile:
-    #
-    #   export DRAFT_API_KEY=fdrk_...
-    #   export DRAFT_API_URL=https://draft.foundryworks.dev   # optional
-    #
-    # If you run the work loop unattended via `hermes cron`, the
-    # gateway daemon's subprocess may not inherit an interactive
-    # shell's env. In that case, set the values explicitly here:
-    #
-    # env:
-    #   DRAFT_API_KEY: "fdrk_..."
-    #   DRAFT_API_URL: "https://draft.foundryworks.dev"
+    # The env: block is REQUIRED. Unlike Claude Code / Codex, Hermes does
+    # not hand a stdio MCP subprocess your shell environment — it forwards
+    # only a safe baseline (PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL,
+    # TMPDIR, XDG_*) plus this map, and it does NOT interpolate ${VAR}
+    # here. So `DRAFT_API_KEY=... hermes` never reaches the server; the
+    # key has to be the literal value below. Keep this file out of version
+    # control since it holds the secret.
+    env:
+      DRAFT_API_KEY: "fdrk_..."
+      # DRAFT_API_URL is optional — only set it for a self-hosted Draft.
+      # Defaults to https://draft.foundryworks.dev when omitted.
+      # DRAFT_API_URL: "https://draft.foundryworks.dev"

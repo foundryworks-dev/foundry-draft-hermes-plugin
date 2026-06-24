@@ -42,11 +42,11 @@ Notes:
 - Each scheduled run is a **fresh session**, so it naturally re-fetches
   `mcp_draft_context` and re-reads the queue every time — exactly what
   the poll loop below does by hand.
-- Because cron jobs run under the gateway daemon (not your interactive
-  shell), make sure that process can see `DRAFT_API_KEY`. If your key
-  lives only in an interactive shell profile, set it explicitly in the
-  server's `env:` block in `~/.hermes/config.yaml` (see the repo
-  README) so the daemon's subprocess inherits it.
+- `DRAFT_API_KEY` must be set in the server's `env:` block in
+  `~/.hermes/config.yaml` (the installer does this) — Hermes doesn't
+  forward your shell env to a stdio MCP server, so an exported key
+  alone won't reach the Draft tools. This is the same requirement as
+  interactive use; cron doesn't add anything special here.
 - Manage the job with `hermes cron list` / `pause` / `resume` /
   `remove`.
 
