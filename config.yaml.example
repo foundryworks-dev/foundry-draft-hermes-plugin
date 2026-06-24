@@ -1,0 +1,30 @@
+# Example ~/.hermes/config.yaml fragment for the Foundry/Draft MCP server.
+#
+# Merge the `mcp_servers.draft` entry below into your existing
+# ~/.hermes/config.yaml (scripts/install.sh does this for you when the
+# file has no mcp_servers block yet). Replace the args path with the
+# absolute path to this repo's mcp/draft-mcp.js.
+#
+# Hermes registers a stdio MCP server's tools as mcp_<server>_<tool>,
+# so this `draft` server's tools appear as mcp_draft_queue,
+# mcp_draft_context, mcp_draft_claim_story, and so on.
+
+mcp_servers:
+  draft:
+    command: "node"
+    args: ["/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js"]
+
+    # Credentials are read from the environment by default, so the key
+    # never has to be written into this file. Prefer exporting them in
+    # your shell profile:
+    #
+    #   export DRAFT_API_KEY=fdrk_...
+    #   export DRAFT_API_URL=https://draft.foundryworks.dev   # optional
+    #
+    # If you run the work loop unattended via `hermes cron`, the
+    # gateway daemon's subprocess may not inherit an interactive
+    # shell's env. In that case, set the values explicitly here:
+    #
+    # env:
+    #   DRAFT_API_KEY: "fdrk_..."
+    #   DRAFT_API_URL: "https://draft.foundryworks.dev"
