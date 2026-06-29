@@ -35,11 +35,11 @@ fi
 
 # --- 1. skills ------------------------------------------------------
 mkdir -p "$SKILLS_DIR"
-for skill in draft-queue draft-work draft-watch; do
+for skill in draft-queue draft-work draft-watch draft-refresh; do
   cp -R "$REPO_DIR/skills/$skill" "$SKILLS_DIR/"
 done
 echo "  ✓ copied skills → $SKILLS_DIR"
-echo "    (/draft-queue, /draft-work, /draft-watch)"
+echo "    (/draft-queue, /draft-work, /draft-watch, /draft-refresh)"
 
 # --- 2. MCP server in config.yaml -----------------------------------
 mkdir -p "$HERMES_HOME"
