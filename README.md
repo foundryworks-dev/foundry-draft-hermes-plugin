@@ -21,7 +21,7 @@ host program to wrap; you register the server and install the skills.
 | Piece | Claude Code | Hermes |
 | --- | --- | --- |
 | API access | MCP server (bundled) | **same MCP server** — `mcp/draft-mcp.js`, registered in `~/.hermes/config.yaml` |
-| Commands | `/draft:*` skills | `agentskills.io` skills in `~/.hermes/skills/` → `/draft-queue`, `/draft-work`, `/draft-watch` |
+| Commands | `/draft:*` skills | `agentskills.io` skills in `~/.hermes/skills/` → `/draft-queue`, `/draft-work`, `/draft-watch`, `/draft-refresh` |
 | Unattended polling | `/draft:watch` sleep loop | **native `hermes cron`** scheduling `/draft-work` (the `draft-watch` skill documents this) |
 | "Draft is connected" notice | `SessionStart` hook | no equivalent — mention the commands in a Hermes context file if you want it |
 
@@ -144,6 +144,11 @@ After install + restart, in a Hermes session:
   context and re-reads the queue. The skill also describes an
   in-session poll-loop fallback. Manage the job with `hermes cron
   list` / `pause` / `resume` / `remove`.
+- **`/draft-refresh`** — re-fetch Draft's authoritative operating
+  instructions (the workspace context) from the API and adopt them as
+  canonical for the rest of the session (read-only). Handy for a
+  long-running session when the workflow rules may have changed
+  server-side.
 
 ## MCP tools
 
@@ -170,9 +175,10 @@ Invoke them as `mcp_draft_<tool>` (e.g. `mcp_draft_queue`).
 
 ```
 mcp/draft-mcp.js               zero-dependency MCP server wrapping the Draft API
-skills/draft-queue/SKILL.md    /draft-queue  — read-only queue view
-skills/draft-work/SKILL.md     /draft-work   — drain the queue once
-skills/draft-watch/SKILL.md    /draft-watch  — drain + poll (prefers `hermes cron`)
+skills/draft-queue/SKILL.md    /draft-queue   — read-only queue view
+skills/draft-work/SKILL.md     /draft-work    — drain the queue once
+skills/draft-watch/SKILL.md    /draft-watch   — drain + poll (prefers `hermes cron`)
+skills/draft-refresh/SKILL.md  /draft-refresh — re-pull the workflow context
 scripts/install.sh             copies skills + wires up config.yaml
 config.yaml.example            the mcp_servers.draft entry to merge by hand
 ```
