@@ -149,6 +149,16 @@ After install + restart, in a Hermes session:
   canonical for the rest of the session (read-only). Handy for a
   long-running session when the workflow rules may have changed
   server-side.
+- **`/draft-agents`** — pick an agent key from the **Foundry Agent
+  Registry** instead of exporting one by hand. When the local `foundry
+  daemon` is running and `DRAFT_API_KEY` is unset, this lists the keys
+  you may lease (grouped by project, marked available / in use), you
+  choose one, and the plugin claims it for the session via the daemon.
+  If `DRAFT_API_KEY` is already set, the registry flow is skipped
+  entirely. `install.sh` places the broker client at
+  `~/.hermes/scripts/foundry-registry.js`. (Hermes has no session-end
+  hook, so release the key with the broker's `release` when done — the
+  daemon/server idle auto-release is the backstop.)
 
 ## MCP tools
 
@@ -180,7 +190,9 @@ skills/draft-queue/SKILL.md    /draft-queue   — read-only queue view
 skills/draft-work/SKILL.md     /draft-work    — drain the queue once
 skills/draft-watch/SKILL.md    /draft-watch   — drain + poll (prefers `hermes cron`)
 skills/draft-refresh/SKILL.md  /draft-refresh — re-pull the workflow context
-scripts/install.sh             copies skills + wires up config.yaml
+skills/draft-agents/SKILL.md   /draft-agents  — pick + claim a key from the registry
+scripts/foundry-registry.js    Agent Key Registry broker client (talks to the local daemon)
+scripts/install.sh             copies skills + broker client + wires up config.yaml
 config.yaml.example            the mcp_servers.draft entry to merge by hand
 ```
 

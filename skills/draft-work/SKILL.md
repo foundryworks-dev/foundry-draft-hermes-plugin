@@ -20,8 +20,13 @@ prefix — Hermes namespaces a registered server's tools as
 
 The MCP server reads its config from the environment:
 
-- `DRAFT_API_KEY` (required) — the workspace agent API key. If a tool
-  call reports it's unset, tell the user to export it and stop.
+- `DRAFT_API_KEY` — the workspace agent API key. If it's not set in the
+  environment, resolve it from the registry:
+  `node "${HERMES_HOME:-$HOME/.hermes}/scripts/foundry-registry.js" resolve`
+  prints `DRAFT_API_KEY<TAB>DRAFT_API_URL` (env if set, else a lease
+  claimed via `/draft-agents`) — use it over REST. If that exits
+  non-zero, tell the user to run `/draft-agents` or export
+  `DRAFT_API_KEY`, and stop.
 - `DRAFT_API_URL` (optional) — defaults to
   `https://draft.foundryworks.dev`.
 
