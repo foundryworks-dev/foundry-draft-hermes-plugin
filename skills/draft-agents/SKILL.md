@@ -36,8 +36,10 @@ only to the local daemon over loopback and never handles an operator token.
    node "${HERMES_HOME:-$HOME/.hermes}/scripts/foundry-registry.js" keys
    ```
 
-   Prints keys grouped by project, marked available / in use, env-tagged, with
-   `[PROD]` flagged. Show the user the list and ask which agent to work as. Only
+   Prints a table with a **Cross-Project** column (✓ = a workspace-level agent,
+   works across every project) and a **Project** column (the team a
+   project-scoped agent belongs to), plus availability, env, and a `[PROD]`
+   flag. Show the user the list and ask which agent to work as. Only
    `available` keys can be claimed; be explicit about `[PROD]` choices.
 
 3. **Claim the chosen key** (with its `key_id` and `env`):
