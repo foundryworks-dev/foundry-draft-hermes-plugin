@@ -152,7 +152,8 @@ After install + restart, in a Hermes session:
 - **`/draft-agents`** — pick an agent key from the **Foundry Agent
   Registry** instead of exporting one by hand. When the local `foundry
   daemon` is running and `DRAFT_API_KEY` is unset, this lists the keys
-  you may lease (grouped by project, marked available / in use), you
+  in a table — a Cross-Project column (workspace-level agents) and a
+  Project column (project-scoped agents), plus availability — you
   choose one, and the plugin claims it for the session via the daemon.
   If `DRAFT_API_KEY` is already set, the registry flow is skipped
   entirely. `install.sh` places the broker client at
