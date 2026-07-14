@@ -35,11 +35,19 @@ fi
 
 # --- 1. skills ------------------------------------------------------
 mkdir -p "$SKILLS_DIR"
-for skill in draft-queue draft-work draft-watch draft-refresh; do
+for skill in draft-queue draft-work draft-watch draft-refresh draft-agents; do
   cp -R "$REPO_DIR/skills/$skill" "$SKILLS_DIR/"
 done
 echo "  ✓ copied skills → $SKILLS_DIR"
-echo "    (/draft-queue, /draft-work, /draft-watch, /draft-refresh)"
+echo "    (/draft-queue, /draft-work, /draft-watch, /draft-refresh, /draft-agents)"
+
+# --- 1b. registry broker client -------------------------------------
+# The draft-agents skill shells out to this to talk to the local Foundry
+# Agent Registry daemon (#194). Installed under $HERMES_HOME/scripts so
+# the skill can find it regardless of where this repo lives.
+mkdir -p "$HERMES_HOME/scripts"
+cp "$REPO_DIR/scripts/foundry-registry.js" "$HERMES_HOME/scripts/"
+echo "  ✓ copied registry broker client → $HERMES_HOME/scripts/foundry-registry.js"
 
 # --- 2. MCP server in config.yaml -----------------------------------
 mkdir -p "$HERMES_HOME"
