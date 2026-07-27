@@ -86,21 +86,26 @@ If you'd rather wire it up yourself:
 
 | Variable        | Required | Default                          | Purpose                                    |
 | --------------- | -------- | -------------------------------- | ------------------------------------------ |
-| `DRAFT_API_KEY` | yes      | —                                | Your workspace agent API key (`fdrk_…`).   |
-| `DRAFT_API_URL` | no       | `https://draft.foundryworks.dev` | Override for a self-hosted Draft instance. |
+| `FOUNDRY_API_KEY` | yes      | —                                | Your workspace agent API key (`fdrk_…`).   |
+| `FOUNDRY_API_URL` | no       | `https://draft.foundryworks.dev` | Override for a self-hosted Draft instance. |
+
+**The `DRAFT_API_KEY` / `DRAFT_API_URL` names are still accepted** and are
+not going away. `FOUNDRY_*` wins when both are set; otherwise `DRAFT_*` is
+used and the plugin prints a one-line notice on stderr. Existing setups need
+no change (#456).
 
 Get an API key from your Draft workspace under **Settings → Agents**.
 
 ### The key must live in the config's `env:` block
 
 This trips people up coming from Claude Code or Codex, where exporting
-`DRAFT_API_KEY` (or prefixing the launch, `DRAFT_API_KEY=… claude`) is
+`FOUNDRY_API_KEY` (or prefixing the launch, `FOUNDRY_API_KEY=… claude`) is
 enough — those hosts hand the MCP subprocess your shell environment.
 **Hermes does not.** For a stdio MCP server it forwards only a safe
 baseline (`PATH`, `HOME`, `USER`, `LANG`, `LC_ALL`, `TERM`, `SHELL`,
 `TMPDIR`, `XDG_*`) plus the server entry's own `env:` map, and it does
 **not** interpolate `${VAR}` inside that map. So an exported
-`DRAFT_API_KEY` never reaches the Draft server — the key has to be the
+`FOUNDRY_API_KEY` never reaches the Draft server — the key has to be the
 literal value in `env:`:
 
 ```yaml
@@ -109,12 +114,12 @@ mcp_servers:
     command: "node"
     args: ["/abs/path/to/mcp/draft-mcp.js"]
     env:
-      DRAFT_API_KEY: "fdrk_…"            # required — literal value
-      # DRAFT_API_URL: "https://…"       # only for self-hosted Draft
+      FOUNDRY_API_KEY: "fdrk_…"            # required — literal value
+      # FOUNDRY_API_URL: "https://…"       # only for self-hosted Draft
 ```
 
-`scripts/install.sh` writes this for you: it reads `DRAFT_API_KEY` (and
-`DRAFT_API_URL`, if set) from your shell **at install time** and bakes
+`scripts/install.sh` writes this for you: it reads `FOUNDRY_API_KEY` (and
+`FOUNDRY_API_URL`, if set) from your shell **at install time** and bakes
 the value into the `env:` block. If the key isn't exported when you run
 it, the installer leaves a `fdrk_REPLACE_WITH_YOUR_KEY` placeholder for
 you to fill in. Because the key now lives in `~/.hermes/config.yaml`,
@@ -151,11 +156,11 @@ After install + restart, in a Hermes session:
   server-side.
 - **`/draft-agents`** — pick an agent key from the **Foundry Agent
   Registry** instead of exporting one by hand. When the local `foundry
-  daemon` is running and `DRAFT_API_KEY` is unset, this lists the keys
+  daemon` is running and `FOUNDRY_API_KEY` is unset, this lists the keys
   in a table — a Cross-Project column (workspace-level agents) and a
   Project column (project-scoped agents), plus availability — you
   choose one, and the plugin claims it for the session via the daemon.
-  If `DRAFT_API_KEY` is already set, the registry flow is skipped
+  If `FOUNDRY_API_KEY` is already set, the registry flow is skipped
   entirely. `install.sh` places the broker client at
   `~/.hermes/scripts/foundry-registry.js`. (Hermes has no session-end
   hook, so release the key with the broker's `release` when done — the

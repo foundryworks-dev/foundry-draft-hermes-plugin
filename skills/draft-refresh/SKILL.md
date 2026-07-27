@@ -21,7 +21,7 @@ registered server's tools as `mcp_<server>_<tool>`.
 
 ## Steps
 
-1. Call `mcp_draft_context`. It reads `DRAFT_API_KEY` / `DRAFT_API_URL`
+1. Call `mcp_draft_context`. It reads `FOUNDRY_API_KEY` / `FOUNDRY_API_URL`
    from the environment; if the call reports the key is unset, tell the
    user to export it and stop. The tool re-fetches the board model, the
    story state machine, the claim/start/comment/transition/finish

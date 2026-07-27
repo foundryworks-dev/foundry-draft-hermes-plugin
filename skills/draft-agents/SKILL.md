@@ -1,6 +1,6 @@
 ---
 name: draft-agents
-description: Pick and claim an agent key from the local Foundry Agent Registry daemon instead of exporting a DRAFT_API_KEY by hand. Lists the keys you may lease grouped by project; you choose one and the plugin claims it for this session.
+description: Pick and claim an agent key from the local Foundry Agent Registry daemon instead of exporting a FOUNDRY_API_KEY by hand. Lists the keys you may lease grouped by project; you choose one and the plugin claims it for this session.
 version: 0.1.0
 metadata:
   hermes:
@@ -10,8 +10,8 @@ metadata:
 
 # Pick an agent from the registry
 
-Use this when `DRAFT_API_KEY` is **not** already set and you're running the
-Foundry Agent Registry daemon (`foundry daemon`). If `DRAFT_API_KEY` **is**
+Use this when `FOUNDRY_API_KEY` is **not** already set and you're running the
+Foundry Agent Registry daemon (`foundry daemon`). If `FOUNDRY_API_KEY` **is**
 set, the registry flow is unnecessary — this session is already keyed; say so
 and stop.
 
@@ -56,7 +56,7 @@ only to the local daemon over loopback and never handles an operator token.
 
 4. **Proceed:** `/draft-queue` and `/draft-work` resolve the credential with
    `node "${HERMES_HOME:-$HOME/.hermes}/scripts/foundry-registry.js" resolve`
-   (env `DRAFT_API_KEY` if set, otherwise the claimed lease) and operate as
+   (env `FOUNDRY_API_KEY` if set, otherwise the claimed lease) and operate as
    that agent.
 
 ## Lifecycle
