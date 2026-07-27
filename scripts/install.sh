@@ -82,11 +82,14 @@ fi
 # tools/list hands back bare names — so aliasing it means mounting the
 # same script twice (#457). `foundry` is the name to use going forward;
 # `draft` stays until the telemetry gate (#458) says nobody calls it.
+# The key is also passed to the process as --server-key, because that gate
+# needs to know which namespace a call came through and the two entries
+# are otherwise identical from inside the script (#458).
 print_entry() {
   cat <<EOF
   $1:
     command: "node"
-    args: ["$MCP_PATH"]
+    args: ["$MCP_PATH", "--server-key=$1"]
     env:
       FOUNDRY_API_KEY: "$KEY"
 EOF
