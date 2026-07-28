@@ -33,7 +33,7 @@ into each repo; it may be extracted to a shared package later.)
 
 Hermes namespaces a registered MCP server's tools as
 `mcp_<server>_<tool>`, and that prefix comes from the config key rather
-than from anything the server returns. `scripts/install.sh` registers the
+than from anything the server returns. Both installers register the
 same script under two keys, so both namespaces resolve:
 
 | Namespace | Status |
@@ -59,15 +59,41 @@ So the tools are `mcp_foundry_queue`, `mcp_foundry_context`,
 ## Install
 
 ```bash
+export FOUNDRY_API_KEY=fdrk_...
+curl -fsSL https://foundryworks.dev/install-hermes.sh | sh
+```
+
+That downloads a versioned, SHA-256-verified release from
+`dl.foundryworks.dev`, installs it under
+`~/.foundry/hermes-draft-plugin/<version>` behind a stable `current`
+symlink, copies the skills into `~/.hermes/skills/`, and adds
+`mcp_servers.foundry` and `mcp_servers.draft` blocks to
+`~/.hermes/config.yaml`. Re-run to upgrade; `--uninstall` removes it:
+
+```bash
+curl -fsSL https://foundryworks.dev/install-hermes.sh | sh -s -- --uninstall
+```
+
+Pin a version with `FOUNDRY_HERMES_VERSION=v0.1.0`. Export the key
+*before* running it — see [The key must live in the config's `env:` block](#the-key-must-live-in-the-configs-env-block)
+for why hermes needs it at install time rather than at runtime.
+
+### Installing from a clone
+
+`scripts/install.sh` still works and does the same wiring against your
+working copy, which is what you want when developing the plugin:
+
+```bash
 git clone https://github.com/foundryworks-dev/foundry-draft-hermes-plugin
 cd foundry-draft-hermes-plugin
 ./scripts/install.sh
 ```
 
-`install.sh` copies the skills into `~/.hermes/skills/` and adds
-`mcp_servers.foundry` and `mcp_servers.draft` blocks to
-`~/.hermes/config.yaml`. It's idempotent —
-re-run it to refresh the skills after a `git pull`.
+The difference is what `mcp_servers.*.args` points at: a clone path,
+which the remote installer can't update for you (it won't rewrite YAML
+it can't safely parse). If you switch from a clone to the remote
+installer, it tells you the path to change — a one-time edit, after
+which the `current` symlink absorbs every later upgrade.
 
 YAML has no repeated-key merge the way TOML tables do, so the config
 step is conservative: it appends a fresh `mcp_servers:` block only when
@@ -85,7 +111,7 @@ step.
 The skills were `/draft-queue`, `/draft-work`, `/draft-watch`,
 `/draft-refresh` and `/draft-agents`. They are now `/foundry-*`.
 
-Re-running `install.sh` copies the new skills in. Because installing only
+Re-running either installer copies the new skills in. Because installing only
 ever copies and never deletes, your existing `~/.hermes/skills/draft-*`
 directories stay put and keep working — they call `mcp_draft_*`, which
 still resolves. They will not receive further updates, so once you are on
@@ -104,7 +130,7 @@ checking before you clean up.
 
 If you'd rather wire it up yourself:
 
-1. Copy the three `skills/foundry-*` directories into `~/.hermes/skills/`.
+1. Copy the five `skills/foundry-*` directories into `~/.hermes/skills/`.
 2. Merge the `mcp_servers.foundry` and `mcp_servers.draft` entries from
    [`config.yaml.example`](config.yaml.example) into
    `~/.hermes/config.yaml`, using the absolute path to your clone's
