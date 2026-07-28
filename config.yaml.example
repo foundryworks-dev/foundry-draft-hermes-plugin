@@ -18,11 +18,15 @@ mcp_servers:
     # not hand a stdio MCP subprocess your shell environment — it forwards
     # only a safe baseline (PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL,
     # TMPDIR, XDG_*) plus this map, and it does NOT interpolate ${VAR}
-    # here. So `DRAFT_API_KEY=... hermes` never reaches the server; the
+    # here. So `FOUNDRY_API_KEY=... hermes` never reaches the server; the
     # key has to be the literal value below. Keep this file out of version
     # control since it holds the secret.
     env:
-      DRAFT_API_KEY: "fdrk_..."
-      # DRAFT_API_URL is optional — only set it for a self-hosted Draft.
+      FOUNDRY_API_KEY: "fdrk_..."
+      # FOUNDRY_API_URL is optional — only set it for a self-hosted Foundry.
       # Defaults to https://draft.foundryworks.dev when omitted.
-      # DRAFT_API_URL: "https://draft.foundryworks.dev"
+      # FOUNDRY_API_URL: "https://draft.foundryworks.dev"
+      #
+      # An existing config using DRAFT_API_KEY / DRAFT_API_URL keeps working
+      # and needs no edit — the server prefers FOUNDRY_* and falls back to
+      # the DRAFT_* names, which are not going away (#456).

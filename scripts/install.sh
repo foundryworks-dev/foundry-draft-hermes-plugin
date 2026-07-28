@@ -57,12 +57,15 @@ touch "$CONFIG"
 # MCP subprocess your shell environment — it passes only a safe baseline
 # (PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL, TMPDIR, XDG_*) plus
 # whatever is in the entry's `env:` map, and it does NOT interpolate
-# ${VAR} inside that map. So `DRAFT_API_KEY=... hermes` never reaches the
+# ${VAR} inside that map. So `FOUNDRY_API_KEY=... hermes` never reaches the
 # server: the key must be written literally into `env:` below. We read it
 # from your shell at install time; if it isn't exported yet, we write a
 # clear placeholder for you to fill in.
-KEY="${DRAFT_API_KEY:-}"
-URL="${DRAFT_API_URL:-}"
+# Read either name from your shell; write the current one into the config.
+# Configs already carrying DRAFT_* keep working — the server falls back to
+# them (#456) — so an existing install needs no edit.
+KEY="${FOUNDRY_API_KEY:-${DRAFT_API_KEY:-}}"
+URL="${FOUNDRY_API_URL:-${DRAFT_API_URL:-}}"
 KEY_IS_PLACEHOLDER=0
 if [ -z "$KEY" ]; then
   KEY="fdrk_REPLACE_WITH_YOUR_KEY"
@@ -72,17 +75,17 @@ fi
 # The draft entry, indented two spaces as a child of `mcp_servers:`.
 # Emitted via a literal heredoc (not `read`, which would strip the
 # leading indentation off the first line and break the YAML nesting).
-# DRAFT_API_URL is only emitted when you've set a non-default host.
+# FOUNDRY_API_URL is only emitted when you've set a non-default host.
 print_draft_entry() {
   cat <<EOF
   draft:
     command: "node"
     args: ["$MCP_PATH"]
     env:
-      DRAFT_API_KEY: "$KEY"
+      FOUNDRY_API_KEY: "$KEY"
 EOF
   if [ -n "$URL" ]; then
-    echo "      DRAFT_API_URL: \"$URL\""
+    echo "      FOUNDRY_API_URL: \"$URL\""
   fi
 }
 
@@ -106,22 +109,22 @@ fi
 if [ "$KEY_IS_PLACEHOLDER" -eq 1 ]; then
   cat <<EOF
 
-  ! DRAFT_API_KEY was not set in your shell, so the config now has a
+  ! FOUNDRY_API_KEY was not set in your shell, so the config now has a
     placeholder. Edit $CONFIG and replace
     fdrk_REPLACE_WITH_YOUR_KEY under mcp_servers.draft.env with your
-    real key. (Re-running this script with DRAFT_API_KEY exported will
+    real key. (Re-running this script with FOUNDRY_API_KEY exported will
     NOT overwrite an existing draft entry — edit the file directly.)
 EOF
 else
   echo
-  echo "  ✓ wrote your DRAFT_API_KEY into mcp_servers.draft.env"
+  echo "  ✓ wrote your workspace API key into mcp_servers.draft.env"
 fi
 
 cat <<EOF
 
 Note: Hermes only forwards a safe baseline of env vars to stdio MCP
 servers, so the key must live in the config's env: block (above) — an
-exported DRAFT_API_KEY in your shell is NOT enough on its own. Keep
+exported FOUNDRY_API_KEY in your shell is NOT enough on its own. Keep
 $CONFIG out of version control since it now holds the key.
 
 Restart Hermes, then try:  /draft-queue

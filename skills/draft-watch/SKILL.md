@@ -42,7 +42,7 @@ Notes:
 - Each scheduled run is a **fresh session**, so it naturally re-fetches
   `mcp_draft_context` and re-reads the queue every time — exactly what
   the poll loop below does by hand.
-- `DRAFT_API_KEY` must be set in the server's `env:` block in
+- `FOUNDRY_API_KEY` must be set in the server's `env:` block in
   `~/.hermes/config.yaml` (the installer does this) — Hermes doesn't
   forward your shell env to a stdio MCP server, so an exported key
   alone won't reach the Draft tools. This is the same requirement as
@@ -101,5 +101,5 @@ to [60, 3600]).
   *blocking* (`transition_story` with `action: "block"`, plus a
   comment). Don't silently skip it — block it so a human sees it.
 - The MCP tools are the intended interface. The same operations are
-  reachable as plain REST calls against `DRAFT_API_URL` with an
-  `Authorization: Bearer $DRAFT_API_KEY` header, but prefer the tools.
+  reachable as plain REST calls against `FOUNDRY_API_URL` with an
+  `Authorization: Bearer $FOUNDRY_API_KEY` header, but prefer the tools.
