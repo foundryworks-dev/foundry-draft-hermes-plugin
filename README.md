@@ -112,6 +112,21 @@ aliasing a namespace means mounting the same script twice. The cost is that
 every tool appears twice in a session's tool list; that is inherent to MCP
 namespacing, not something the server can dedupe (#457).
 
+Each registration passes its own `--server-key=` so the process knows which
+namespace it is serving — without it the two are indistinguishable, since
+`tools/list` returns bare names either way.
+
+### What gets reported about legacy names (#458)
+
+`draft.` / `DRAFT_*` / `draft:` are supported indefinitely, so retiring any of
+them has to be a decision backed by evidence rather than a guess. To make that
+possible, requests carry an `X-Foundry-Legacy` header naming the legacy names
+**this process is running on** — the `DRAFT_*` variables that supplied its
+config, and `prefix=draft` when invoked under the legacy namespace. The server
+logs those against your agent identity.
+
+It is names only: no credential, no arguments, no story content, and nothing
+at all is sent by a session already on `FOUNDRY_*` and `mcp_foundry_*`.
 
 ### The key must live in the config's `env:` block
 
@@ -129,7 +144,7 @@ literal value in `env:`:
 mcp_servers:
   draft:
     command: "node"
-    args: ["/abs/path/to/mcp/draft-mcp.js"]
+    args: ["/abs/path/to/mcp/draft-mcp.js", "--server-key=draft"]
     env:
       FOUNDRY_API_KEY: "fdrk_…"            # required — literal value
       # FOUNDRY_API_URL: "https://…"       # only for self-hosted Draft

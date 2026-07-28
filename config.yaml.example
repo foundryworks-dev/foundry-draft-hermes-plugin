@@ -12,7 +12,15 @@
 mcp_servers:
   draft:
     command: "node"
-    args: ["/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js"]
+    # --server-key must match the key above. Both entries run the same
+    # script and the server returns bare tool names, so this flag is the
+    # only way the process can tell which namespace it is serving — which
+    # is what the `draft:` retirement gate measures (#458).
+    args:
+      [
+        "/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js",
+        "--server-key=draft",
+      ]
 
     # The env: block is REQUIRED. Unlike Claude Code / Codex, Hermes does
     # not hand a stdio MCP subprocess your shell environment — it forwards
