@@ -1,16 +1,23 @@
 # Example ~/.hermes/config.yaml fragment for the Foundry/Draft MCP server.
 #
-# Merge the `mcp_servers.draft` entry below into your existing
+# Merge the `mcp_servers` entries below into your existing
 # ~/.hermes/config.yaml (scripts/install.sh does this for you when the
-# file has no mcp_servers block yet). Replace the args path with the
+# file has no mcp_servers block yet). Replace the args paths with the
 # absolute path to this repo's mcp/draft-mcp.js.
 #
-# Hermes registers a stdio MCP server's tools as mcp_<server>_<tool>,
-# so this `draft` server's tools appear as mcp_draft_queue,
-# mcp_draft_context, mcp_draft_claim_story, and so on.
+# Hermes registers a stdio MCP server's tools as mcp_<server>_<tool>, and
+# that prefix comes from the key you choose here — the server itself
+# returns bare tool names. So exposing both namespaces means registering
+# the same script twice under two keys (#457). `scripts/install.sh`
+# writes both for you.
+#
+# The bundled skills call mcp_foundry_*, so the `foundry:` entry is the
+# one they need. Register `draft:` as well if you have anything still
+# calling mcp_draft_* — existing skills, cron jobs, your own prompts.
+# It is not going away.
 
 mcp_servers:
-  draft:
+  foundry:
     command: "node"
     # --server-key must match the key above. Both entries run the same
     # script and the server returns bare tool names, so this flag is the
@@ -19,7 +26,7 @@ mcp_servers:
     args:
       [
         "/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js",
-        "--server-key=draft",
+        "--server-key=foundry",
       ]
 
     # The env: block is REQUIRED. Unlike Claude Code / Codex, Hermes does
@@ -29,10 +36,6 @@ mcp_servers:
     # here. So `FOUNDRY_API_KEY=... hermes` never reaches the server; the
     # key has to be the literal value below. Keep this file out of version
     # control since it holds the secret.
-    # Registering the same script under a second key, `foundry:`, is what
-    # gives you the mcp__foundry__* tool names alongside mcp__draft__*.
-    # That prefix comes from this key — the server returns bare tool names —
-    # so an alias means two entries (#457). `scripts/install.sh` writes both.
     env:
       FOUNDRY_API_KEY: "fdrk_..."
       # FOUNDRY_API_URL is optional — only set it for a self-hosted Foundry.
@@ -42,3 +45,15 @@ mcp_servers:
       # An existing config using DRAFT_API_KEY / DRAFT_API_URL keeps working
       # and needs no edit — the server prefers FOUNDRY_* and falls back to
       # the DRAFT_* names, which are not going away (#456).
+
+  # Legacy namespace. Same script, same key, second mount — this is what
+  # keeps mcp_draft_* resolving for anything written before the rename.
+  draft:
+    command: "node"
+    args:
+      [
+        "/absolute/path/to/foundry-draft-hermes-plugin/mcp/draft-mcp.js",
+        "--server-key=draft",
+      ]
+    env:
+      FOUNDRY_API_KEY: "fdrk_..."

@@ -1,5 +1,5 @@
 ---
-name: draft-refresh
+name: foundry-refresh
 description: Re-fetch Foundry/Draft's authoritative operating instructions (the workspace context) from the API and adopt them as canonical for the rest of the session, without restarting.
 version: 0.1.0
 metadata:
@@ -15,13 +15,13 @@ the API. The instructions live server-side and **can change**, so this
 is how you re-ground a session on the latest rules without restarting
 it. Read-only: it claims, starts, and modifies nothing.
 
-The `draft` MCP server (registered in `~/.hermes/config.yaml`) exposes
-its tools under the `mcp_draft_*` prefix — Hermes namespaces a
+The `foundry` MCP server (registered in `~/.hermes/config.yaml`) exposes
+its tools under the `mcp_foundry_*` prefix — Hermes namespaces a
 registered server's tools as `mcp_<server>_<tool>`.
 
 ## Steps
 
-1. Call `mcp_draft_context`. It reads `FOUNDRY_API_KEY` / `FOUNDRY_API_URL`
+1. Call `mcp_foundry_context`. It reads `FOUNDRY_API_KEY` / `FOUNDRY_API_URL`
    from the environment; if the call reports the key is unset, tell the
    user to export it and stop. The tool re-fetches the board model, the
    story state machine, the claim/start/comment/transition/finish
@@ -29,7 +29,7 @@ registered server's tools as `mcp_<server>_<tool>`.
    workspace- or project-specific notes straight from the API.
 2. Adopt the freshly returned text as canonical, replacing any earlier
    understanding from this session — including anything cached from a
-   previous `/draft-work`, `/draft-watch`, or `/draft-refresh` run. If
+   previous `/foundry-work`, `/foundry-watch`, or `/foundry-refresh` run. If
    the new context conflicts with what you were doing, the new context
    wins.
 3. Briefly tell the user what (if anything) changed since the context
@@ -40,6 +40,6 @@ registered server's tools as `mcp_<server>_<tool>`.
 ## Notes
 
 - This does **not** start or continue working the queue. To do that,
-  run `/draft-work` (which loads the context itself before working).
-- The `mcp_draft_context` response is always canonical: if anything in
+  run `/foundry-work` (which loads the context itself before working).
+- The `mcp_foundry_context` response is always canonical: if anything in
   this plugin's skill files conflicts with it, the API wins.

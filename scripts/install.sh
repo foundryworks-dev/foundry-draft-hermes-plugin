@@ -25,7 +25,7 @@ echo "Foundry/Draft Hermes integration — installing into $HERMES_HOME"
 # --- Node check (the MCP server needs Node 18+ for global fetch) ----
 if ! command -v node >/dev/null 2>&1; then
   echo "  ! Node is not on PATH. The MCP server needs Node 18+ — install it"
-  echo "    before using /draft-work or /draft-queue."
+  echo "    before using /foundry-work or /foundry-queue."
 else
   major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
   if [ "$major" -lt 18 ]; then
@@ -35,14 +35,14 @@ fi
 
 # --- 1. skills ------------------------------------------------------
 mkdir -p "$SKILLS_DIR"
-for skill in draft-queue draft-work draft-watch draft-refresh draft-agents; do
+for skill in foundry-queue foundry-work foundry-watch foundry-refresh foundry-agents; do
   cp -R "$REPO_DIR/skills/$skill" "$SKILLS_DIR/"
 done
 echo "  ✓ copied skills → $SKILLS_DIR"
-echo "    (/draft-queue, /draft-work, /draft-watch, /draft-refresh, /draft-agents)"
+echo "    (/foundry-queue, /foundry-work, /foundry-watch, /foundry-refresh, /foundry-agents)"
 
 # --- 1b. registry broker client -------------------------------------
-# The draft-agents skill shells out to this to talk to the local Foundry
+# The foundry-agents skill shells out to this to talk to the local Foundry
 # Agent Registry daemon (#194). Installed under $HERMES_HOME/scripts so
 # the skill can find it regardless of where this repo lives.
 mkdir -p "$HERMES_HOME/scripts"
@@ -147,7 +147,7 @@ if [ "$KEY_IS_PLACEHOLDER" -eq 1 ]; then
 
   ! FOUNDRY_API_KEY was not set in your shell, so the config now has a
     placeholder. Edit $CONFIG and replace
-    fdrk_REPLACE_WITH_YOUR_KEY under mcp_servers.draft.env with your
+    fdrk_REPLACE_WITH_YOUR_KEY under mcp_servers.foundry.env with your
     real key. (Re-running this script with FOUNDRY_API_KEY exported will
     NOT overwrite an existing draft entry — edit the file directly.)
 EOF
@@ -163,8 +163,8 @@ servers, so the key must live in the config's env: block (above) — an
 exported FOUNDRY_API_KEY in your shell is NOT enough on its own. Keep
 $CONFIG out of version control since it now holds the key.
 
-Restart Hermes, then try:  /draft-queue
+Restart Hermes, then try:  /foundry-queue
 
 For unattended watching, schedule the work loop with Hermes cron:
-      hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill draft-work
+      hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill foundry-work
 EOF
