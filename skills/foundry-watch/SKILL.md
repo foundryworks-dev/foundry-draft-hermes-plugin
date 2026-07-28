@@ -1,6 +1,6 @@
 ---
-name: draft-watch
-description: Work the Foundry/Draft agent queue and keep polling for new work when the queue empties. The "set it and forget it" variant of /draft-work — for an unattended stretch, prefer scheduling it with `hermes cron`.
+name: foundry-watch
+description: Work the Foundry/Draft agent queue and keep polling for new work when the queue empties. The "set it and forget it" variant of /foundry-work — for an unattended stretch, prefer scheduling it with `hermes cron`.
 version: 0.1.0
 metadata:
   hermes:
@@ -10,14 +10,14 @@ metadata:
 
 # Watch the Draft queue
 
-Same per-story flow as `/draft-work`, but instead of stopping when the
+Same per-story flow as `/foundry-work`, but instead of stopping when the
 queue is empty, keep checking until new work arrives or the user
 interrupts. Use this when the operator wants the agent to run
 unattended for a stretch — kick it off, walk away, come back to
 delivered stories.
 
-The `draft` MCP server (registered in `~/.hermes/config.yaml`) exposes
-its tools under the `mcp_draft_*` prefix.
+The `foundry` MCP server (registered in `~/.hermes/config.yaml`) exposes
+its tools under the `mcp_foundry_*` prefix.
 
 ## Preferred on Hermes: schedule it with `hermes cron`
 
@@ -26,21 +26,21 @@ unattended polling than an in-session sleep loop: each run is a fresh
 agent session with an isolated context, and the gateway daemon keeps
 firing it even after you close your terminal.
 
-Register `/draft-work` to run on an interval:
+Register `/foundry-work` to run on an interval:
 
 ```bash
-hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill draft-work
+hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill foundry-work
 ```
 
 (Or from inside a chat session: `/cron add "every 5m" "Drain the
-Foundry/Draft agent queue." --skill draft-work`.)
+Foundry/Draft agent queue." --skill foundry-work`.)
 
 Notes:
 
 - The gateway daemon executes scheduled jobs — install it once with
   `hermes gateway install` if you haven't.
 - Each scheduled run is a **fresh session**, so it naturally re-fetches
-  `mcp_draft_context` and re-reads the queue every time — exactly what
+  `mcp_foundry_context` and re-reads the queue every time — exactly what
   the poll loop below does by hand.
 - `FOUNDRY_API_KEY` must be set in the server's `env:` block in
   `~/.hermes/config.yaml` (the installer does this) — Hermes doesn't
@@ -57,21 +57,21 @@ cron, run the per-story flow and, when the queue empties, poll:
 
 ### 1. Load the workflow instructions — first, every time
 
-Call `mcp_draft_context` and follow it; it is the source of truth for
+Call `mcp_foundry_context` and follow it; it is the source of truth for
 the state machine, claim mechanics, and hand-off protocol. Fetch fresh
 each run rather than relying on memory.
 
 ### 2. Drain the queue
 
-Call `mcp_draft_queue` and work each available item to completion:
+Call `mcp_foundry_queue` and work each available item to completion:
 
-- `mcp_draft_claim_story` — claim ownership.
-- `mcp_draft_transition_story` with `action: "start"`.
-- `mcp_draft_comment` — post a short plan comment.
+- `mcp_foundry_claim_story` — claim ownership.
+- `mcp_foundry_transition_story` with `action: "start"`.
+- `mcp_foundry_comment` — post a short plan comment.
 - Do the implementation. Run the project's tests / build.
-- `mcp_draft_add_link` — attach the PR or commit URL if the project
+- `mcp_foundry_add_link` — attach the PR or commit URL if the project
   has a connected repo.
-- `mcp_draft_transition_story` with `action: "finish"`.
+- `mcp_foundry_transition_story` with `action: "finish"`.
 
 Repeat for each available item in priority order.
 
@@ -81,7 +81,7 @@ Repeat for each available item in priority order.
    5 minutes before next check. Interrupt to stop.`
 2. Wait roughly 5 minutes (a `sleep 300` is fine if your host allows
    shell access).
-3. Call `mcp_draft_queue` again.
+3. Call `mcp_foundry_queue` again.
    - If there are stories, drop back to step 2 and drain them.
    - If still empty, repeat the wait + re-check. There is no hardcoded
      stopping condition — the user ends the watch by interrupting.
@@ -92,7 +92,7 @@ to [60, 3600]).
 
 ## Guardrails
 
-- The `mcp_draft_context` response is canonical. If anything in this
+- The `mcp_foundry_context` response is canonical. If anything in this
   file conflicts with it, the API wins.
 - Never transition a story to `accepted` — that's the human reviewer's
   call. `finish` is the right terminal state for agent work.

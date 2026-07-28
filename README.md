@@ -21,8 +21,8 @@ host program to wrap; you register the server and install the skills.
 | Piece | Claude Code | Hermes |
 | --- | --- | --- |
 | API access | MCP server (bundled) | **same MCP server** — `mcp/draft-mcp.js`, registered in `~/.hermes/config.yaml` |
-| Commands | `/draft:*` skills | `agentskills.io` skills in `~/.hermes/skills/` → `/draft-queue`, `/draft-work`, `/draft-watch`, `/draft-refresh` |
-| Unattended polling | `/draft:watch` sleep loop | **native `hermes cron`** scheduling `/draft-work` (the `draft-watch` skill documents this) |
+| Commands | `/foundry:*` skills | `agentskills.io` skills in `~/.hermes/skills/` → `/foundry-queue`, `/foundry-work`, `/foundry-watch`, `/foundry-refresh` |
+| Unattended polling | `/foundry:watch` sleep loop | **native `hermes cron`** scheduling `/foundry-work` (the `foundry-watch` skill documents this) |
 | "Draft is connected" notice | `SessionStart` hook | no equivalent — mention the commands in a Hermes context file if you want it |
 
 The MCP server is the same one the Claude Code and Codex plugins ship
@@ -32,11 +32,18 @@ into each repo; it may be extracted to a shared package later.)
 ### Tool names
 
 Hermes namespaces a registered MCP server's tools as
-`mcp_<server>_<tool>`. This server registers as `draft`, so its tools
-are `mcp_draft_queue`, `mcp_draft_context`, `mcp_draft_claim_story`,
-`mcp_draft_transition_story`, and so on — note the single underscores
-(Claude Code uses `mcp__draft__*`). The bundled skills already
-reference the `mcp_draft_*` names.
+`mcp_<server>_<tool>`, and that prefix comes from the config key rather
+than from anything the server returns. `scripts/install.sh` registers the
+same script under two keys, so both namespaces resolve:
+
+| Namespace | Status |
+| --------- | ------ |
+| `mcp_foundry_*` | the name to use going forward; what the bundled skills call |
+| `mcp_draft_*`   | still works; retired only once usage telemetry says nobody calls it (#458) |
+
+So the tools are `mcp_foundry_queue`, `mcp_foundry_context`,
+`mcp_foundry_claim_story`, and so on — note the single underscores
+(Claude Code uses `mcp__foundry__*`).
 
 > **Token-tracking note.** The MCP server's `claim_story` and
 > `transition_story` tools auto-PATCH a story's `agent_tokens_used`
@@ -57,27 +64,48 @@ cd foundry-draft-hermes-plugin
 ./scripts/install.sh
 ```
 
-`install.sh` copies the skills into `~/.hermes/skills/` and adds an
-`mcp_servers.draft` block to `~/.hermes/config.yaml`. It's idempotent —
+`install.sh` copies the skills into `~/.hermes/skills/` and adds
+`mcp_servers.foundry` and `mcp_servers.draft` blocks to
+`~/.hermes/config.yaml`. It's idempotent —
 re-run it to refresh the skills after a `git pull`.
 
 YAML has no repeated-key merge the way TOML tables do, so the config
 step is conservative: it appends a fresh `mcp_servers:` block only when
-your config has none, and otherwise prints the exact `draft:` entry for
-you to paste under your existing `mcp_servers:` (rather than risk
-corrupting a multi-server config). An existing `draft:` server is left
+your config has none, and otherwise prints the exact entries for you to
+paste under your existing `mcp_servers:` (rather than risk corrupting a
+multi-server config). An existing `foundry:` or `draft:` server is left
 untouched.
 
 **Requirement:** the MCP server is a Node script — Node 18+ must be on
 `PATH` (it uses the built-in `fetch`). No npm dependencies, no build
 step.
 
+### Upgrading from the `draft-` skills
+
+The skills were `/draft-queue`, `/draft-work`, `/draft-watch`,
+`/draft-refresh` and `/draft-agents`. They are now `/foundry-*`.
+
+Re-running `install.sh` copies the new skills in. Because installing only
+ever copies and never deletes, your existing `~/.hermes/skills/draft-*`
+directories stay put and keep working — they call `mcp_draft_*`, which
+still resolves. They will not receive further updates, so once you are on
+the `foundry-` skills you can remove them:
+
+```bash
+rm -rf ~/.hermes/skills/draft-{queue,work,watch,refresh,agents}
+```
+
+If you scheduled the old name with `hermes cron`, update the job:
+`--skill draft-work` becomes `--skill foundry-work`. A cron job pointing
+at a skill you have deleted will fail silently otherwise, which is worth
+checking before you clean up.
+
 ### Manual install
 
 If you'd rather wire it up yourself:
 
-1. Copy the three `skills/draft-*` directories into `~/.hermes/skills/`.
-2. Merge the `mcp_servers.draft` entry from
+1. Copy the three `skills/foundry-*` directories into `~/.hermes/skills/`.
+2. Merge the `mcp_servers.foundry` and `mcp_servers.draft` entries from
    [`config.yaml.example`](config.yaml.example) into
    `~/.hermes/config.yaml`, using the absolute path to your clone's
    `mcp/draft-mcp.js`.
@@ -142,13 +170,16 @@ literal value in `env:`:
 
 ```yaml
 mcp_servers:
-  draft:
+  foundry:
     command: "node"
-    args: ["/abs/path/to/mcp/draft-mcp.js", "--server-key=draft"]
+    args: ["/abs/path/to/mcp/draft-mcp.js", "--server-key=foundry"]
     env:
       FOUNDRY_API_KEY: "fdrk_…"            # required — literal value
       # FOUNDRY_API_URL: "https://…"       # only for self-hosted Draft
 ```
+
+The legacy `draft:` entry takes the same shape with
+`--server-key=draft`; `install.sh` writes both.
 
 `scripts/install.sh` writes this for you: it reads `FOUNDRY_API_KEY` (and
 `FOUNDRY_API_URL`, if set) from your shell **at install time** and bakes
@@ -164,29 +195,29 @@ unattended `hermes cron` jobs alike.
 
 After install + restart, in a Hermes session:
 
-- **`/draft-queue`** — show the stories waiting in your agent queue
+- **`/foundry-queue`** — show the stories waiting in your agent queue
   (read-only).
-- **`/draft-work`** — work the queue: claim the top story, implement
+- **`/foundry-work`** — work the queue: claim the top story, implement
   it, and finish it. Name a story number to pick up a specific story
   instead of the top of the queue.
-- **`/draft-watch`** — the unattended variant. On Hermes the
-  recommended path is to schedule `/draft-work` with the native cron
+- **`/foundry-watch`** — the unattended variant. On Hermes the
+  recommended path is to schedule `/foundry-work` with the native cron
   scheduler:
 
   ```bash
-  hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill draft-work
+  hermes cron create "every 5m" "Drain the Foundry/Draft agent queue." --skill foundry-work
   ```
 
   Each scheduled run is a fresh session that re-fetches the workflow
   context and re-reads the queue. The skill also describes an
   in-session poll-loop fallback. Manage the job with `hermes cron
   list` / `pause` / `resume` / `remove`.
-- **`/draft-refresh`** — re-fetch Draft's authoritative operating
+- **`/foundry-refresh`** — re-fetch Draft's authoritative operating
   instructions (the workspace context) from the API and adopt them as
   canonical for the rest of the session (read-only). Handy for a
   long-running session when the workflow rules may have changed
   server-side.
-- **`/draft-agents`** — pick an agent key from the **Foundry Agent
+- **`/foundry-agents`** — pick an agent key from the **Foundry Agent
   Registry** instead of exporting one by hand. When the local `foundry
   daemon` is running and `FOUNDRY_API_KEY` is unset, this lists the keys
   in a table — a Cross-Project column (workspace-level agents) and a
@@ -218,20 +249,20 @@ The `draft` MCP server exposes (Hermes name in parentheses):
 | `update_story`      | Patch arbitrary story fields (points, labels, …).            |
 | `library_write`     | Create or update a Library wiki page by (project, slug).        |
 
-Invoke them as `mcp_draft_<tool>` (e.g. `mcp_draft_queue`).
+Invoke them as `mcp_foundry_<tool>` (e.g. `mcp_foundry_queue`). The legacy `mcp_draft_<tool>` names still resolve.
 
 ## Layout
 
 ```
 mcp/draft-mcp.js               zero-dependency MCP server wrapping the Draft API
-skills/draft-queue/SKILL.md    /draft-queue   — read-only queue view
-skills/draft-work/SKILL.md     /draft-work    — drain the queue once
-skills/draft-watch/SKILL.md    /draft-watch   — drain + poll (prefers `hermes cron`)
-skills/draft-refresh/SKILL.md  /draft-refresh — re-pull the workflow context
-skills/draft-agents/SKILL.md   /draft-agents  — pick + claim a key from the registry
+skills/foundry-queue/SKILL.md    /foundry-queue   — read-only queue view
+skills/foundry-work/SKILL.md     /foundry-work    — drain the queue once
+skills/foundry-watch/SKILL.md    /foundry-watch   — drain + poll (prefers `hermes cron`)
+skills/foundry-refresh/SKILL.md  /foundry-refresh — re-pull the workflow context
+skills/foundry-agents/SKILL.md   /foundry-agents  — pick + claim a key from the registry
 scripts/foundry-registry.js    Agent Key Registry broker client (talks to the local daemon)
 scripts/install.sh             copies skills + broker client + wires up config.yaml
-config.yaml.example            the mcp_servers.draft entry to merge by hand
+config.yaml.example            the mcp_servers entries to merge by hand
 ```
 
 ## License
