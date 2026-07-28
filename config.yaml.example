@@ -28,8 +28,8 @@ mcp_servers:
     env:
       FOUNDRY_API_KEY: "fdrk_..."
       # FOUNDRY_API_URL is optional — only set it for a self-hosted Foundry.
-      # Defaults to https://draft.foundryworks.dev when omitted.
-      # FOUNDRY_API_URL: "https://draft.foundryworks.dev"
+      # Defaults to https://app.foundryworks.dev when omitted.
+      # FOUNDRY_API_URL: "https://app.foundryworks.dev"
       #
       # An existing config using DRAFT_API_KEY / DRAFT_API_URL keeps working
       # and needs no edit — the server prefers FOUNDRY_* and falls back to
