@@ -76,9 +76,15 @@ fi
 # Emitted via a literal heredoc (not `read`, which would strip the
 # leading indentation off the first line and break the YAML nesting).
 # FOUNDRY_API_URL is only emitted when you've set a non-default host.
-print_draft_entry() {
+# $1 = the YAML key, which is what determines the tool namespace the
+# client exposes (mcp__foundry__queue vs mcp__draft__queue). That prefix
+# comes from the config key, not from anything the MCP server returns —
+# tools/list hands back bare names — so aliasing it means mounting the
+# same script twice (#457). `foundry` is the name to use going forward;
+# `draft` stays until the telemetry gate (#458) says nobody calls it.
+print_entry() {
   cat <<EOF
-  draft:
+  $1:
     command: "node"
     args: ["$MCP_PATH"]
     env:
@@ -89,21 +95,48 @@ EOF
   fi
 }
 
-if grep -qE '^[[:space:]]+draft:[[:space:]]*$' "$CONFIG"; then
+# Only emit the entries that aren't already there, so re-running is safe
+# and an operator who has hand-tuned one of them keeps it. Tracked as two
+# flags rather than a space-separated string — an unquoted "$MISSING" only
+# splits into words under bash, and this file gets sourced/read by enough
+# shells that relying on that is a trap.
+need_foundry=1
+need_draft=1
+if grep -qE "^[[:space:]]+foundry:[[:space:]]*$" "$CONFIG"; then
+  echo "  • a 'foundry:' MCP server is already in $CONFIG — left untouched"
+  need_foundry=0
+fi
+if grep -qE "^[[:space:]]+draft:[[:space:]]*$" "$CONFIG"; then
   echo "  • a 'draft:' MCP server is already in $CONFIG — left untouched"
+  need_draft=0
+fi
+
+print_missing() {
+  [ "$need_foundry" -eq 1 ] && print_entry foundry
+  [ "$need_draft" -eq 1 ] && print_entry draft
+  return 0
+}
+report_added() {
+  [ "$need_foundry" -eq 1 ] && echo "  ✓ added mcp_servers.foundry → $CONFIG"
+  [ "$need_draft" -eq 1 ] && echo "  ✓ added mcp_servers.draft → $CONFIG"
+  return 0
+}
+
+if [ "$need_foundry" -eq 0 ] && [ "$need_draft" -eq 0 ]; then
+  :
 elif grep -qE '^mcp_servers:[[:space:]]*$' "$CONFIG"; then
   echo "  • $CONFIG already has an 'mcp_servers:' block."
-  echo "    Add the draft server by pasting this under it:"
+  echo "    Add the missing server(s) by pasting this under it:"
   echo
-  print_draft_entry
+  print_missing
   echo
 else
   {
     echo ""
     echo "mcp_servers:"
-    print_draft_entry
+    print_missing
   } >> "$CONFIG"
-  echo "  ✓ added mcp_servers.draft → $CONFIG"
+  report_added
 fi
 
 if [ "$KEY_IS_PLACEHOLDER" -eq 1 ]; then
@@ -117,7 +150,7 @@ if [ "$KEY_IS_PLACEHOLDER" -eq 1 ]; then
 EOF
 else
   echo
-  echo "  ✓ wrote your workspace API key into mcp_servers.draft.env"
+  echo "  ✓ wrote your workspace API key into the MCP server env block(s)"
 fi
 
 cat <<EOF

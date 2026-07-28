@@ -21,6 +21,10 @@ mcp_servers:
     # here. So `FOUNDRY_API_KEY=... hermes` never reaches the server; the
     # key has to be the literal value below. Keep this file out of version
     # control since it holds the secret.
+    # Registering the same script under a second key, `foundry:`, is what
+    # gives you the mcp__foundry__* tool names alongside mcp__draft__*.
+    # That prefix comes from this key — the server returns bare tool names —
+    # so an alias means two entries (#457). `scripts/install.sh` writes both.
     env:
       FOUNDRY_API_KEY: "fdrk_..."
       # FOUNDRY_API_URL is optional — only set it for a self-hosted Foundry.
