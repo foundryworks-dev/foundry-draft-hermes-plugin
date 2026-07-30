@@ -67,6 +67,24 @@ jobs:
             --endpoint-url "$R2_ENDPOINT" \
             --content-type text/plain
 
+      # Jeremy's call on #524: the bundle and the installer that fetches it
+      # ship in one action. The Codex installer is hand-copied to the
+      # marketing site and had already drifted behind its own release (#519);
+      # the registry publishes its installer from a *separate* workflow, which
+      # is better but still lets the two land apart. Publishing both from this
+      # job means the script that knows how to fetch version N cannot be older
+      # than N.
+      #
+      # Unversioned path on purpose: the URL in the docs must stay stable, and
+      # the script resolves the version itself from latest.txt.
+      - name: Publish installer to R2
+        run: |
+          aws s3 cp install-hermes.sh "s3://${R2_BUCKET}/install-hermes.sh" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type text/x-shellscript \
+            --cache-control 'no-cache'
+          echo "Published to https://dl.foundryworks.dev/install-hermes.sh"
+
       - name: Update latest pointer
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
