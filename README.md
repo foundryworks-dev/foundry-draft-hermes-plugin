@@ -217,6 +217,20 @@ you to fill in. Because the key now lives in `~/.hermes/config.yaml`,
 This applies everywhere the server runs — interactive sessions and
 unattended `hermes cron` jobs alike.
 
+**`--uninstall` does not take the key back out**, and that is deliberate
+rather than an oversight (#533). Removing an entry means editing YAML,
+and editing YAML safely means parsing it — a wrong guess corrupts a
+config that may hold other people's MCP servers. So uninstall removes
+the skills, the broker client and the install tree, then tells you
+exactly which two entries to delete. The same rule governs install: it
+appends an `mcp_servers:` block only when the file has none, and
+otherwise prints the entries for you to paste.
+
+The practical consequence, worth stating plainly because it is the
+security-relevant half: **after `--uninstall`, your API key is still in
+`~/.hermes/config.yaml`.** Delete the `foundry:` and `draft:` entries by
+hand, and rotate the key if it should no longer work.
+
 ## Use
 
 After install + restart, in a Hermes session:
