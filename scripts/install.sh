@@ -114,6 +114,31 @@ if grep -qE "^[[:space:]]+draft:[[:space:]]*$" "$CONFIG"; then
   need_draft=0
 fi
 
+# An entry that's already there is left untouched (above) — but "untouched"
+# is only the right outcome if it points at *this* install. Someone who first
+# installed from a git clone has a config whose args path is their clone; a
+# later tarball install leaves that entry alone and they keep running the old
+# code, having just been told the install succeeded. That silent no-op is the
+# thing this installer family exists to remove, so say it out loud.
+#
+# Warn, never edit: the same reason uninstall won't strip entries. We can't
+# rewrite YAML we can't parse.
+warn_if_stale_path() {
+  [ -f "$CONFIG" ] || return 0
+  grep -q "$MCP_PATH" "$CONFIG" && return 0
+  grep -q 'draft-mcp' "$CONFIG" || return 0
+  local old
+  old="$(grep 'draft-mcp' "$CONFIG" | head -n1 | sed -E 's|.*"([^"]*draft-mcp[^"]*)".*|\1|')"
+  echo
+  echo "  ! an existing entry does not point at this install."
+  [ -n "$old" ] && echo "    it currently runs: $old"
+  echo "    to use the version just installed, edit $CONFIG"
+  echo "    and set the args path to:"
+  echo "        $MCP_PATH"
+  echo "    (a stable symlink, so future upgrades will not need this again)"
+  return 0
+}
+
 print_missing() {
   [ "$need_foundry" -eq 1 ] && print_entry foundry
   [ "$need_draft" -eq 1 ] && print_entry draft
@@ -124,6 +149,12 @@ report_added() {
   [ "$need_draft" -eq 1 ] && echo "  ✓ added mcp_servers.draft → $CONFIG"
   return 0
 }
+
+# Checked whenever *any* entry already existed, not only when both did — a
+# single stale entry runs the same old code as two.
+if [ "$need_foundry" -eq 0 ] || [ "$need_draft" -eq 0 ]; then
+  warn_if_stale_path
+fi
 
 if [ "$need_foundry" -eq 0 ] && [ "$need_draft" -eq 0 ]; then
   :
