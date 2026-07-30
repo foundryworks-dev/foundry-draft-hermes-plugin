@@ -60,7 +60,7 @@ So the tools are `mcp_foundry_queue`, `mcp_foundry_context`,
 
 ```bash
 export FOUNDRY_API_KEY=fdrk_...
-curl -fsSL https://foundryworks.dev/install-hermes.sh | sh
+curl -fsSL https://dl.foundryworks.dev/install-hermes.sh | sh
 ```
 
 That downloads a versioned, SHA-256-verified release from
@@ -71,7 +71,7 @@ symlink, copies the skills into `~/.hermes/skills/`, and adds
 `~/.hermes/config.yaml`. Re-run to upgrade; `--uninstall` removes it:
 
 ```bash
-curl -fsSL https://foundryworks.dev/install-hermes.sh | sh -s -- --uninstall
+curl -fsSL https://dl.foundryworks.dev/install-hermes.sh | sh -s -- --uninstall
 ```
 
 Pin a version with `FOUNDRY_HERMES_VERSION=v0.1.0`. Export the key
