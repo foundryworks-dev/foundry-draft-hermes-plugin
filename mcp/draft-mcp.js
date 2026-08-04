@@ -372,36 +372,81 @@ async function patchTokensUsedAtFinish(projectId, number) {
 // Resolve the model this agent is running so the Draft API records it on
 // each request (#420 — the client side of #416's X-Foundry-Model capture,
 // which populates model history for raw-fdrk_-key agents that never call
-// report-usage). Prefer an explicit FOUNDRY_MODEL override; otherwise read
-// the most recent message.model from the session transcript (the harness
-// records the live model there — e.g. "claude-opus-4-8"). Cached briefly so
-// we don't re-read the transcript on every API call.
+// report-usage).
+//
+// This USED to be a verbatim copy of the Claude Code implementation: it read
+// `message.model` out of a JSONL transcript located via
+// process.env.CLAUDE_CODE_SESSION_ID. Neither exists on a Hermes host, so it
+// returned "" on every call and modelHeaders() correctly omitted the header
+// (#569). The code shipped in #420, looked right, and reported nothing for
+// months — and it was indistinguishable from working, because omitting the
+// header is also the correct behaviour when the model is genuinely unknown.
+//
+// Where the model actually lives on this host, checked against a real
+// ~/.hermes rather than assumed:
+//
+//   * ~/.hermes/sessions/ is NOT a transcript directory. It holds
+//     request_dump_*.json files written only when a request FAILS, so a
+//     healthy session leaves nothing there. It looks like Codex's
+//     ~/.codex/sessions and behaves nothing like it — do not reach for it.
+//   * ~/.hermes/config.yaml carries `model.default`, which matches the model
+//     recorded inside those failure dumps. That cross-check is why this is
+//     the right field rather than a plausible-looking one.
+//
+// Known limit, deliberately not papered over: this is the CONFIGURED default,
+// so a model overridden for a single session is not visible here. That is
+// exactly why the omit-when-unsure restraint below stays — a wrong model
+// produces a confident wrong cost, which is worse than an acknowledged gap.
 let modelCache = null; // { model, version, at }
 const MODEL_TTL_MS = 30000;
 
-function readModelFromTranscript() {
-  const sess = currentSession();
-  if (!sess || !sess.path) return "";
+const HERMES_HOME =
+  process.env.HERMES_HOME || path.join(os.homedir(), ".hermes");
+
+// Extract `model.default` from Hermes's config.yaml.
+//
+// Hand-parsed rather than pulled from a YAML library because this plugin has
+// no dependencies and must run straight from source. The parse is deliberately
+// narrow: find the top-level `model:` block, read `default:` from the lines
+// indented under it, and stop at the next top-level key. Anything it does not
+// understand yields "" and the header is omitted, which is the safe direction.
+function readModelFromHermesConfig() {
+  const file = path.join(HERMES_HOME, "config.yaml");
   let data;
   try {
-    data = fs.readFileSync(sess.path, "utf8");
+    data = fs.readFileSync(file, "utf8");
   } catch {
-    return "";
+    return ""; // not a Hermes host, or no config yet
   }
-  let model = "";
-  for (const line of data.split("\n")) {
-    if (!line.trim()) continue;
-    let row;
-    try {
-      row = JSON.parse(line);
-    } catch {
+  let inModelBlock = false;
+  for (const raw of data.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+
+    const topLevel = /^(\S[^:]*):/.exec(line);
+    if (topLevel) {
+      // A new top-level key ends the model block. Checking this before the
+      // `default:` match is what stops a `default:` under some later section
+      // being read as the model.
+      inModelBlock = topLevel[1] === "model";
       continue;
     }
-    const m = row && row.message && row.message.model;
-    // Skip Claude Code's synthetic placeholder rows.
-    if (m && m !== "<synthetic>") model = m;
+    if (!inModelBlock) continue;
+
+    const m = /^\s+default:\s*(.+?)\s*$/.exec(line);
+    if (m) {
+      // Strip surrounding quotes and any trailing comment.
+      let v = m[1].replace(/\s+#.*$/, "").trim();
+      if (
+        (v.startsWith('"') && v.endsWith('"')) ||
+        (v.startsWith("'") && v.endsWith("'"))
+      ) {
+        v = v.slice(1, -1);
+      }
+      return v;
+    }
   }
-  return model;
+  return "";
 }
 
 // { model, version } for the current agent, or empty model when unknown.
@@ -411,7 +456,7 @@ function resolveModel() {
   if (envModel) return { model: envModel, version };
   const now = Date.now();
   if (modelCache && now - modelCache.at < MODEL_TTL_MS) return modelCache;
-  modelCache = { model: readModelFromTranscript(), version, at: now };
+  modelCache = { model: readModelFromHermesConfig(), version, at: now };
   return modelCache;
 }
 
@@ -842,37 +887,47 @@ async function handle(msg) {
   }
 }
 
-// Newline-delimited JSON on stdin. Buffer across chunks so a message
-// split over two reads still parses.
-let buf = "";
-process.stdin.setEncoding("utf8");
-process.stdin.on("data", (chunk) => {
-  buf += chunk;
-  let nl;
-  while ((nl = buf.indexOf("\n")) >= 0) {
-    const line = buf.slice(0, nl).trim();
-    buf = buf.slice(nl + 1);
-    if (!line) continue;
-    let msg;
-    try {
-      msg = JSON.parse(line);
-    } catch (e) {
-      process.stderr.write("draft-mcp: bad JSON on stdin: " + e.message + "\n");
-      continue;
+// Requiring this file exports the model resolver instead of starting the
+// server (#569). The bug it just carried — a resolver that could not fire on
+// this host — survived because nothing could call it without standing up an
+// MCP session, so "the code is there" was the only evidence available and it
+// was wrong. scripts/test-model.sh now calls the real function. Running the
+// file directly is unchanged.
+if (require.main !== module) {
+  module.exports = { readModelFromHermesConfig, resolveModel, modelHeaders };
+} else {
+  // Newline-delimited JSON on stdin. Buffer across chunks so a message
+  // split over two reads still parses.
+  let buf = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => {
+    buf += chunk;
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      let msg;
+      try {
+        msg = JSON.parse(line);
+      } catch (e) {
+        process.stderr.write("draft-mcp: bad JSON on stdin: " + e.message + "\n");
+        continue;
+      }
+      handle(msg).catch((e) => {
+        process.stderr.write(
+          "draft-mcp: handler error: " + ((e && e.stack) || e) + "\n",
+        );
+      });
     }
-    handle(msg).catch((e) => {
-      process.stderr.write(
-        "draft-mcp: handler error: " + ((e && e.stack) || e) + "\n",
-      );
-    });
-  }
-});
-// No explicit exit on stdin 'end'. When the client closes stdin the
-// stream unrefs itself; Node then exits on its own once any in-flight
-// tool calls have settled and written their responses. Calling
-// process.exit() here would kill pending fetches mid-flight.
+  });
+  // No explicit exit on stdin 'end'. When the client closes stdin the
+  // stream unrefs itself; Node then exits on its own once any in-flight
+  // tool calls have settled and written their responses. Calling
+  // process.exit() here would kill pending fetches mid-flight.
 
-process.stderr.write(
-  `draft-mcp ${SERVER_INFO.version} ready — API ${API_URL}` +
-    (API_KEY ? "\n" : " (FOUNDRY_API_KEY not set)\n"),
-);
+  process.stderr.write(
+    `draft-mcp ${SERVER_INFO.version} ready — API ${API_URL}` +
+      (API_KEY ? "\n" : " (FOUNDRY_API_KEY not set)\n"),
+  );
+}
