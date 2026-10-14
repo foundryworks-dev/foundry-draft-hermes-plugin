@@ -1,0 +1,19 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  craft-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # #666: craft_call must hand screenshots to the client as MCP image
+      # content. Stringifying them would still look like it works, so the
+      # content type is asserted, over the real stdio transport.
+      - run: node scripts/test-craft-tools.js
