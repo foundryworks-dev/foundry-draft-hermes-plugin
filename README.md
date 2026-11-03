@@ -47,7 +47,8 @@ So the tools are `mcp_foundry_queue`, `mcp_foundry_context`,
 
 > **Token-tracking note.** The MCP server's `claim_story` and
 > `transition_story` tools auto-PATCH a story's `agent_tokens_used`
-> field on the finish transition by reading the agent session's
+> field on the finish transition (and `update_story` does on a handoff
+> that moves `owner_id` to someone else, #660) by reading the agent session's
 > transcript. Today that reader only knows the Claude Code transcript
 > path (`~/.claude/projects/…`), so in a Hermes session the
 > bookkeeping gracefully short-circuits and leaves the field null —
